@@ -1,0 +1,72 @@
+#include "msp430.h"                     ; #define controlled include file
+
+        NAME    main                    ; module name
+
+        PUBLIC  main                    ; make the main label vissible
+                                        ; outside this module
+        ORG     0FFFEh
+        DC16    init                    ; set reset vector to 'init' label
+
+        RSEG    CSTACK                  ; pre-declaration of segment
+        RSEG    CODE                    ; place program in 'CODE' segment
+
+init:   MOV     #SFE(CSTACK), SP        ; set up stack
+;===============¥Dµ{¦¡=======================================
+main:   NOP                             ; main program
+        MOV.W   #WDTPW+WDTHOLD,&WDTCTL  ; Stop watchdog timer
+        mov.b  #00000001b , P1DIR
+        mov.b  #10000000b , P4DIR
+        
+
+	bis.b #00000001b, P1OUT    ;LED1µo«G   
+	mov #0 ,R6
+;===============Delay1°j°é==============
+For1:
+	cmp #100 ,R6
+	jz outfor1
+	mov #5000 , R5 ; 2 cycle
+delay1: 
+        DEC R5
+        ;sub #1 , R5 ; 1 cycle
+        cmp #0 , R5 ; 1 cycle
+        jnz delay1 ; 2 cycle
+	
+	add #1 ,R6
+	jmp For1
+
+;//fill the function segment
+        
+;=======================================         
+outfor1:
+	xor.b #00000001b, P1OUT 
+	bis.b #10000000b, P4OUT
+	;D1-LEDº¶·À and D2-LEDµo«G
+                                                   
+		mov #0 ,R6
+;==============Delay2°j°é===============
+For2:
+	cmp #100 ,R6
+	jz outfor2
+		mov #5000 , R5 ; 2 cycle
+delay2: sub #1 , R5 ; 1 cycle
+		cmp #0 , R5 ; 1 cycle
+		jnz delay2 ; 2 cycle
+	
+	add #1 ,R6
+	jmp For2
+;//fill the function segment
+
+;=======================================        
+outfor2:
+	xor.b #10000000b, P4OUT 
+
+        ;D2-LEDº¶·À
+
+
+
+
+       jmp main
+               
+        
+;=====================================================================        
+        END
