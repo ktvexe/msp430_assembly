@@ -1,0 +1,97 @@
+#include "msp430.h"                     ; #define controlled include file
+
+        NAME    main                    ; module name
+
+        PUBLIC  main                    ; make the main label vissible
+                                        ; outside this module
+        ORG     0FFFEh
+        DC16    init                    ; set reset vector to 'init' label
+
+        ORG	0FFEAh                  ;TimerA0's CCR
+	DC16	TIMER
+        
+        ORG	0FFE8h                  ;TimerA0's CCR
+	DC16	TIMER_PWM
+        
+        ORG     0FFDEh                  ;interrupt vector
+        DW      P1_ISR
+        
+        RSEG    CSTACK                  ; pre-declaration of segment
+        RSEG    CODE                    ; place program in 'CODE' segment
+
+;==========0.1sdelay MACRO=====================================
+pone_delay MACRO
+LOCAL For01s ,delay01s ,quit
+        mov #0 ,R6
+For01s:
+
+	mov #20000 , R5 ; 2 cycle
+delay01s: 
+        DEC R5  ; 1 cycle
+        nop ;1 cycle
+        cmp #0 , R5 ; 1 cycle
+        jnz delay01s ; 2 cycle
+
+quit:
+        ENDM
+
+
+init:   MOV     #SFE(CSTACK), SP        ; set up stack
+
+main:   NOP                             ; main program
+        MOV.W   #WDTPW+WDTHOLD,&WDTCTL  ; Stop watchdog timer
+        
+        mov.b   #00000101b , &P1DIR
+        mov.b   #00000000b , &P1OUT
+        mov.b   #00010000b , P1REN
+        MOV.B   #00010000b , &P1IE
+        bic.b   #00010000b , &P1IFG
+        
+        MOV.W #TASSEL_1+MC_1+ID_0+TACLR,&TA0CTL ;Setting timer register. 
+	;MOV.W #CCIE,&TA0CCTL0
+        ;MOV.W #CCIE,&TA0CCTL1
+        MOV.W #200,&TA0CCR0
+        mov.w #100,R12
+        mov.w #10,R11
+        bis.W #GIE|LPM3,SR
+        mov.b   #00000101b , &P1OUT
+start:
+        cmp #190,R12
+        jz     subb_start
+        add.w R11,R12
+do:     MOV.W R12,&TA0CCR1
+        bis.W #GIE|LPM3,SR
+        ;bis.W #GIE|LPM3,SR
+        pone_delay
+        jmp start
+        
+subb_start:
+        cmp #10,R12
+        jz     start
+subb:
+        sub.w R11,R12
+        MOV.W R12,&TA0CCR1
+        bis.W #GIE|LPM3,SR
+       ; bis.W #GIE|LPM3,SR
+        pone_delay
+        jmp subb_start
+
+                                        ; (endless loop)
+TIMER:
+      bic.w   #LPM3,0(SP) 
+      ;xor.b #00000101b,&P1OUT
+      mov.b #00000101b,&P1OUT
+      RETI
+TIMER_PWM:
+      mov #0,&TA0IV 
+      bic.w   #LPM3,0(SP) 
+      mov.b #00000000b,&P1OUT
+      ;xor.b #00000101b,&P1OUT
+      RETI
+P1_ISR:
+      MOV.W #CCIE,&TA0CCTL0
+      MOV.W #CCIE,&TA0CCTL1 
+      bic.b #00010000b,&P1IE
+      RETI
+
+        END

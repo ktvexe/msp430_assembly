@@ -1,0 +1,237 @@
+#include "msp430.h"                     ; #define controlled include file
+
+        NAME    main                    ; module name
+
+        PUBLIC  main                    ; make the main label vissible
+                                        ; outside this module
+        ORG     0FFFEh
+        DC16    init                    ; set reset vector to 'init' label
+
+        ORG     0FFD4h                  ;interrupt vector
+        DW      P2_ISR
+        
+        ORG     0FFDEh                  ;interrupt vector
+        DW      P1_ISR
+        
+        ORG	0FFF6h                  ;TimerB0's CCR
+	DC16	TIMER05s
+        
+        #define Do_1 63 
+        #define Re_1 56 
+        #define Mi_1 50 
+        #define Fa_1 47 
+        #define Sol_1 42 
+        #define La_1 37 
+        #define Ti_1 33 
+        #define Do_2 31 
+
+        RSEG    CSTACK                  ; pre-declaration of segment
+        RSEG    CODE                    ; place program in 'CODE' segment
+
+;==========Do_to-Do2=====================================
+Do MACRO
+        MOV.W #Do_1,&TA0CCR0 ;Setting timer's threshold for other function
+        MOV.W #Do_1/2,&TA0CCR1
+        nop
+        bis.W #GIE|LPM3,SR
+        ENDM
+Re MACRO
+        MOV.W #Re_1,&TA0CCR0 ;Setting timer's threshold for other function
+        MOV.W #Re_1/2,&TA0CCR1
+        nop
+        bis.W #GIE|LPM3,SR
+        ENDM
+Mi MACRO
+        MOV.W #Mi_1,&TA0CCR0 ;Setting timer's threshold for other function
+        MOV.W #Mi_1/2,&TA0CCR1
+        nop
+        bis.W #GIE|LPM3,SR
+        ENDM
+Fa MACRO
+        MOV.W #Fa_1,&TA0CCR0 ;Setting timer's threshold for other function
+        MOV.W #Fa_1/2,&TA0CCR1
+        nop
+        bis.W #GIE|LPM3,SR
+        ENDM
+Sol MACRO
+        MOV.W #Sol_1,&TA0CCR0 ;Setting timer's threshold for other function
+        MOV.W #Sol_1/2,&TA0CCR1
+        nop
+        bis.W #GIE|LPM3,SR
+        ENDM
+La MACRO
+        MOV.W #La_1,&TA0CCR0 ;Setting timer's threshold for other function
+        MOV.W #La_1/2,&TA0CCR1
+        nop
+        bis.W #GIE|LPM3,SR
+        ENDM        
+Ti MACRO
+        MOV.W #Ti_1,&TA0CCR0 ;Setting timer's threshold for other function
+        MOV.W #Ti_1/2,&TA0CCR1
+        nop
+        bis.W #GIE|LPM3,SR
+        ENDM        
+Do2 MACRO
+        MOV.W #Do_2,&TA0CCR0 ;Setting timer's threshold for other function
+        MOV.W #Do_2/2,&TA0CCR1
+        nop
+        bis.W #GIE|LPM3,SR
+        ENDM        
+;==========0.1sdelay MACRO=====================================
+pone_delay MACRO
+LOCAL delay01s ,quit
+	mov #2000 , R5 ; 2 cycle
+delay01s: 
+        DEC R5  ; 1 cycle
+        nop ;1 cycle
+        cmp #0 , R5 ; 1 cycle
+        jnz delay01s ; 2 cycle
+quit:
+        cmp #1,R7
+        jz  quit
+        cmp #2,R7
+        jz  play
+        ENDM
+        
+        
+        
+init:   MOV     #SFE(CSTACK), SP        ; set up stack
+
+main:   NOP                             ; main program
+        MOV.W   #WDTPW+WDTHOLD,&WDTCTL  ; Stop watchdog timer
+        ;set P2.1
+        mov.b   #00000000b , P2DIR
+        mov.b   #00000010b , P2REN
+        mov.b   #00000010b , P2OUT
+	MOV.B   #00000010b , &P2IES
+        MOV.B   #00000010b , &P2IE
+	;set P1.1	
+        mov.b   #00000100b , P1DIR
+        mov.b   #00110010b , P1REN
+        mov.b   #00000010b , P1OUT
+        MOV.B   #00000100b , &P1SEL
+	MOV.B   #00000010b , &P1IES
+        MOV.B   #00110010b , &P1IE
+        bic.b   #00110010b , &P1IFG
+        ;set P7.4
+       ; MOV.B #00010000b,&P7SEL
+       ; MOV.B #00010000b,&P7DIR
+        ;set0.5s interrupt
+        MOV.W #TBSSEL_1+MC_1+ID_0+TBCLR,&TB0CTL ;Setting timer register. 
+        ;mov.w #CCIE,&TB0CCTL0
+	MOV.W #16383,&TB0CCR0 ;Setting timer's threshold for other function
+         ;Enable the interrupt.
+        ;use ACLK,UP mode,
+        bis.w #TASSEL_1+MC_1+TACLR,&TA0CTL ;Setting timer register. 
+	bis.w #OUTMOD_7,&TA0CCTL1
+        ;turn on and off
+        
+        
+play:
+        mov #0,R7
+        mov #0,R11
+        mov #0,R12
+        bis.W #GIE|LPM3,SR
+section1:
+        ;times
+        Do
+        pone_delay
+        Do
+        pone_delay
+        Sol
+        pone_delay
+        Sol
+        pone_delay
+        La
+        pone_delay
+        La
+        pone_delay
+        Sol
+        Sol
+        bic #2,R12
+section2:       
+        cmp #2,R12
+        jz  section1
+        inc R11
+        pone_delay
+        Fa
+        pone_delay
+        Fa
+        pone_delay
+        Mi
+        pone_delay
+        Mi
+        pone_delay
+        Re
+        pone_delay
+        Re
+        pone_delay
+        Do
+        Do
+        cmp #2,R11
+        jz  endd
+
+section3:
+        inc R12
+        pone_delay
+        Sol
+        pone_delay
+        Sol
+        pone_delay
+        Fa
+        pone_delay
+        Fa
+        pone_delay
+        Mi
+        pone_delay
+        Mi
+        pone_delay
+        Re
+        Re
+        cmp #2,R12
+        jnz  section3
+        jmp  section2
+        
+endd:
+         ;Enable the interrupt.
+        
+
+        
+TIMER05s:
+        bic.w   #LPM3,0(SP) 
+        MOV.W   #0,&TA0CCR1
+        RETI
+P2_ISR:
+        DINT
+	bic.b #00000010b,&P2IE
+        XOR.W #CCIE,&TB0CCTL0
+        cmp #1,R7
+        jnz   conti
+        mov.b #2,R7
+conti:        
+        ;MOV.W #32768,&TB0CCR0 ;Setting timer's threshold for other function
+        MOV.W #0,&TA0CCR1
+	bic.b #00000010b,&P2IFG
+	bis.b #00000010b,&P2IE
+        EINT
+        RETI
+P1_ISR:
+        DINT
+	bic.b #00010010b,&P1IE
+        bic.W #CCIE,&TB0CCTL0
+        mov.b #1,R7
+        mov.b &P1IFG,R10
+        and.b #00010000b,R10
+        cmp #0x0010,R10
+        jnz   back
+        mov.b #0,R7
+        bis.W #CCIE,&TB0CCTL0
+        ;MOV.W #32768,&TB0CCR0 ;Setting timer's threshold for other function
+back:
+        MOV.W #0,&TA0CCR1
+	bic.b #00010010b,&P1IFG
+	bis.b #00010010b,&P1IE
+        EINT
+        RETI
+        
+        END
