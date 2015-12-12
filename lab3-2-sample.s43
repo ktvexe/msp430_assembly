@@ -1,0 +1,53 @@
+#include "msp430.h"                     ; #define controlled include file
+
+        NAME    main                    ; module name
+
+        PUBLIC  main                    ; make the main label vissible
+                                        ; outside this module
+        ORG     0FFFEh
+        DC16    init                    ; set reset vector to 'init' label
+
+        RSEG    CSTACK                  ; pre-declaration of segment
+        RSEG    CODE                    ; place program in 'CODE' segment
+
+init:   MOV     #SFE(CSTACK), SP        ; set up stack
+
+main:   NOP                             ; main program
+        MOV.W   #WDTPW+WDTHOLD,&WDTCTL  ; Stop watchdog timer
+        mov.b   #00000001b , P1DIR
+        mov.b   #00000000b , P1OUT
+	mov.b   #00000010b , P2REN
+        mov.b   #00000010b , P2OUT
+	
+;===============偵測按鍵===============
+while:  
+	mov.b &P2IN , R10
+        and.b #00000010 , R10
+        cmp  #0 , R10
+        MOV #50000, R15
+        jz delay
+	
+        ////////////
+        ////////////
+        jmp   while
+;======================================
+        
+;==============作亮滅LED動作===========
+do:     xor.b   #00000001b , &P1OUT
+        jmp   delay
+        
+;======================================       
+		
+;=============Delay區間================      
+delay:
+	DEC r15
+        JNZ delay
+      ;//fill the function frome lab3.1
+;======================================
+	mov.b &P2IN , R10
+        and.b #00000010 , R10
+        cmp  #0 , R10
+        jz do
+        jmp while
+		;jmp ////
+        END
